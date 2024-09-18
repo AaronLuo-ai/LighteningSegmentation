@@ -1,0 +1,72 @@
+/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:654: Checkpoint directory /Users/luozisheng/Documents/Zhu_lab/LighteningSegmentation/checkpoints_unet exists and is not empty.
+  | Name      | Type     | Params | Mode
+-----------------------------------------------
+0 | model     | Unet     | 24.4 M | train
+1 | criterion | DiceLoss | 0      | train
+-----------------------------------------------
+24.4 M    Trainable params
+0         Non-trainable params
+24.4 M    Total params
+97.720    Total estimated model params size (MB)
+189       Modules in train mode
+0         Modules in eval mode
+/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:424: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=9` in the `DataLoader` to improve performance.
+Traceback (most recent call last):
+  File "/Users/luozisheng/Documents/Zhu_lab/LighteningSegmentation/main.py", line 59, in <module>
+    main()
+  File "/Users/luozisheng/Documents/Zhu_lab/LighteningSegmentation/main.py", line 56, in main
+    trainer.fit(pl_model, train_dl, test_dl)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
+    call._call_and_handle_interrupt(
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 47, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 981, in _run
+    results = self._run_stage()
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 1023, in _run_stage
+    self._run_sanity_check()
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 1052, in _run_sanity_check
+    val_loop.run()
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/loops/utilities.py", line 178, in _decorator
+    return loop_run(self, *args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 135, in run
+    self._evaluation_step(batch, batch_idx, dataloader_idx, dataloader_iter)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 396, in _evaluation_step
+    output = call._call_strategy_hook(trainer, hook_name, *step_args)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 319, in _call_strategy_hook
+    output = fn(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/pytorch_lightning/strategies/strategy.py", line 411, in validation_step
+    return self.lightning_module.validation_step(*args, **kwargs)
+  File "/Users/luozisheng/Documents/Zhu_lab/LighteningSegmentation/Lightening_module.py", line 40, in validation_step
+    out = self.forward(image.float())
+  File "/Users/luozisheng/Documents/Zhu_lab/LighteningSegmentation/Lightening_module.py", line 14, in forward
+    return self.model(x)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/segmentation_models_pytorch/base/model.py", line 38, in forward
+    features = self.encoder(x)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/segmentation_models_pytorch/encoders/resnet.py", line 63, in forward
+    x = stages[i](x)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/conv.py", line 458, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/Users/luozisheng/miniconda3/envs/Lightening/lib/python3.9/site-packages/torch/nn/modules/conv.py", line 454, in _conv_forward
+    return F.conv2d(input, weight, bias, self.stride,
+RuntimeError: Given groups=1, weight of size [64, 1, 7, 7], expected input[1, 3, 512, 512] to have 1 channels, but got 3 channels instead
+Sanity Checking DataLoader 0:   0%|                                                                                                                       | 0/2 [00:00<?, ?it/s]

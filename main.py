@@ -1,5 +1,4 @@
 # datasets
-from data_loader import test_dataset, train_dataset
 from Lightening_module import Segmentation
 import numpy as np
 import pandas as pd
@@ -19,6 +18,7 @@ from segmentation_models_pytorch import Unet
 import os
 from tqdm import tqdm
 from collections import OrderedDict
+from ControlDataset import Dataset
 
 import segmentation_models_pytorch as smp
 import pytorch_lightning as pl
@@ -28,8 +28,8 @@ def main():
     wandb_logger = WandbLogger(log_model = "all")
     batch_size = 3
 
-    TrainDataset = train_dataset.TrainDataset()
-    TestDataset = test_dataset.TestDataset()
+    TrainDataset = Dataset.Dataset(phase='train')
+    TestDataset = Dataset.Dataset(phase='test')
 
     train_dl = DataLoader(TrainDataset, batch_size=batch_size, shuffle=True, num_workers=0)
     test_dl = DataLoader(TestDataset, batch_size=batch_size, shuffle=False, num_workers=0)
