@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import pickle
 import numpy as np
+from pytorch_lightning.loggers import WandbLogger
 from sklearn.model_selection import train_test_split
 
 import torch
@@ -14,7 +15,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import albumentations as A
 import random
-
+from segmentation_models_pytorch import Unet
 import os
 from tqdm import tqdm
 from collections import OrderedDict
@@ -24,6 +25,7 @@ import pytorch_lightning as pl
 from tabulate import tabulate
 
 def main():
+    wandb_logger = WandbLogger(log_model = "all")
     batch_size = 3
 
     TrainDataset = train_dataset.TrainDataset()
@@ -40,15 +42,7 @@ def main():
         print("Current device:", device, "- Type:", torch.cuda.get_device_name(0))
 
     arch = 'unet'
-    enc_name = 'efficientnet-b0'
-    classes = 1
-
-    model = smp.create_model(arch=arch,  # Use U-Net architecture
-                             encoder_name="resnet34",  # Use ResNet34 as the encoder
-                             encoder_weights="imagenet",  # Initialize with pre-trained ImageNet weights
-                             in_channels=3,  # Input is an RGB image (3 channels)
-                             classes=2).to("cuda")  # Model predicts 2 classes and runs on a GPU
-
+    model = Unet(encoder_name="resnet34", in_channels=1, classes=1)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-03)
     criterion = criterion = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True)
     cbs = pl.callbacks.ModelCheckpoint(dirpath=f'./checkpoints_{arch}',
@@ -58,7 +52,7 @@ def main():
                                        mode='min')
 
     pl_model = Segmentation(model, optimizer, criterion)
-    trainer = pl.Trainer(callbacks=cbs, accelerator='gpu', max_epochs=2, auto_lr_find=True)
+    trainer = pl.Trainer(logger=wandb_logger, callbacks=cbs, accelerator='gpu', max_epochs=100)
     trainer.fit(pl_model, train_dl, test_dl)
 
 if __name__ == '__main__':

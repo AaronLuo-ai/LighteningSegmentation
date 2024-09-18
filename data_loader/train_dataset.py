@@ -7,7 +7,7 @@ import nrrd
 import pandas as pd
 from torch.utils.data import DataLoader
 
-batch_path = Path("/Users/luozisheng/Documents/Zhu‘s Lab/PyTorch_Lightening/batch.csv")
+batch_path = Path("C:\\Users\\aaron.l\\Documents\\U-Net-Segmentation\\Data\\batch.csv")
 df = pd.read_csv(batch_path)
 total_rows = len(df)
 separation_index = (3 * total_rows) // 4
@@ -16,7 +16,7 @@ train_df = df.iloc[:separation_index]
 
 class TrainDataset(Dataset):
     def __init__(self):
-        self.root_dir = Path("/Users/luozisheng/Documents/Zhu‘s Lab/PyTorch_Lightening/first_20_3D_resampled")
+        self.root_dir = ("C:\\Users\\aaron.l\\Documents\\U-Net-Segmentation\\Data")
         self.train_image_files = train_df['Image'].tolist()
         self.train_mask_files = train_df['Mask'].tolist()
         self.mask_list = []
@@ -36,8 +36,8 @@ class TrainDataset(Dataset):
             for i in range(image_padded.shape[0]):
                 image_slice = image_padded[i, :, :]
                 mask_slice = mask_padded[i, :, :]
-                print("image_slice.shape: ", image_slice.shape)
-                print("mask_slice.shape: ", mask_slice.shape)
+                # print("image_slice.shape: ", image_slice.shape)
+                # print("mask_slice.shape: ", mask_slice.shape)
                 seg_image = image_slice * mask_slice
                 seg_image = (seg_image - seg_image.min()) / (seg_image.max() - seg_image.min())
                 mask_slice = (mask_slice - mask_slice.min()) / (mask_slice.max() - mask_slice.min())

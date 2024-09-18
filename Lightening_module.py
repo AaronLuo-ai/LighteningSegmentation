@@ -24,10 +24,26 @@ class Segmentation(pl.LightningModule):
         return {"loss": loss, "iou": iou}
 
     def training_step(self, batch, batch_idx):
-        return self.shared_step(batch, "train")
+        stage = 'train'
+        image, mask = batch
+        out = self.forward(image.float())
+        loss = self.criterion(out, mask.long())
+        tp, fp, fn, tn = smp.metrics.get_stats((out.sigmoid() > 0.5).long(), mask.long(), mode='binary')
+        iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        self.log(f"{stage}_IoU", iou)
+        self.log(f"{stage}_loss", loss)
+        # return self.shared_step(batch, "train")
 
     def validation_step(self, batch, batch_idx):
-        return self.shared_step(batch, "test")
+        stage = 'valid'
+        image, mask = batch
+        out = self.forward(image.float())
+        loss = self.criterion(out, mask.long())
+        tp, fp, fn, tn = smp.metrics.get_stats((out.sigmoid() > 0.5).long(), mask.long(), mode='binary')
+        iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        self.log(f"{stage}_IoU", iou)
+        self.log(f"{stage}_loss", loss)
+        # return self.shared_step(batch, "test")
 
     def configure_optimizers(self):
         return self.optimizer

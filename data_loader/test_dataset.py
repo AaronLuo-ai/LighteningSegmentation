@@ -7,7 +7,7 @@ import nrrd
 import pandas as pd
 from torch.utils.data import DataLoader
 
-batch_path = Path("/Users/luozisheng/Documents/Zhu‘s Lab/PyTorch_Lightening/batch.csv")
+batch_path = Path("C:\\Users\\aaron.l\\Documents\\U-Net-Segmentation\\Data\\batch.csv")
 df = pd.read_csv(batch_path)
 total_rows = len(df)
 separation_index = (3 * total_rows) // 4
@@ -15,7 +15,7 @@ test_df = df.iloc[separation_index + 1:]
 
 class TestDataset(Dataset):
     def __init__(self):
-        self.root_dir = Path("/Users/luozisheng/Documents/Zhu‘s Lab/PyTorch_Lightening/first_20_3D_resampled")
+        self.root_dir = ("C:\\Users\\aaron.l\\Documents\\U-Net-Segmentation\\Data")
         self.test_image_files = test_df['Image'].tolist()
         self.test_mask_files = test_df['Mask'].tolist()
         self.target_size = (512, 512)
@@ -34,8 +34,8 @@ class TestDataset(Dataset):
             for i in range(image_padded.shape[0]):
                 image_slice = image_padded[i, :, :]
                 mask_slice = mask_padded[i, :, :]
-                print("image_slice.shape: ", image_slice.shape)
-                print("mask_slice.shape: ", mask_slice.shape)
+                # print("image_slice.shape: ", image_slice.shape)
+                # print("mask_slice.shape: ", mask_slice.shape)
                 seg_image = image_slice * mask_slice
                 seg_image = (seg_image - seg_image.min()) / (seg_image.max() - seg_image.min())
                 mask_slice = (mask_slice - mask_slice.min()) / (mask_slice.max() - mask_slice.min())
@@ -79,7 +79,7 @@ class TestDataset(Dataset):
         target_h, target_w = target_size
         pad_h = target_h - h  # Padding for the bottom
         pad_w = target_w - w  # Padding for the right
-        padding = ((0, 0), (0, pad_h), (0, pad_w))  # No padding for the depth/channel dimension
+        pagdding = ((0, 0), (0, pad_h), (0, pad_w))  # No padding for the depth/channel dimension
         padded_img = np.pad(img_array, padding, mode='constant', constant_values=0)
         return padded_img
 

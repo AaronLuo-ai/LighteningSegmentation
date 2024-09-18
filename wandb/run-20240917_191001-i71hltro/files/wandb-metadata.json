@@ -1,0 +1,32 @@
+{
+  "os": "Windows-10-10.0.22631-SP0",
+  "python": "3.8.19",
+  "startedAt": "2024-09-18T00:10:01.766908Z",
+  "program": ".\\main.py",
+  "codePath": "main.py",
+  "git": {
+    "remote": "https://github.com/AaronLuo-ai/LighteningSegmentation.git",
+    "commit": "8819b400d0c0cd7a203c133b39ba36109e152fa1"
+  },
+  "email": "aaron.l@wustl.edu",
+  "root": ".",
+  "host": "OULAB-TNIE",
+  "username": "aaron.l",
+  "executable": "C:\\Users\\aaron.l\\miniconda3\\envs\\seg\\python.exe",
+  "codePathLocal": "main.py",
+  "cpu_count": 24,
+  "cpu_count_logical": 32,
+  "disk": {
+    "/": {
+      "total": "1000081453056",
+      "used": "945349128192"
+    }
+  },
+  "memory": {
+    "total": "34088136704"
+  },
+  "cpu": {
+    "count": 24,
+    "countLogical": 32
+  }
+}
