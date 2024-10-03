@@ -1,49 +1,52 @@
-import matplotlib.pyplot as plt
-import segmentation_models_pytorch as smp
 import pytorch_lightning as pl
+import torch
+import wandb
 
 
 class Segmentation(pl.LightningModule):
-    def __init__(self, model, optimizer, criterion):
+    def __init__(self, model, optimizer, loss_fn, metrics):
         super().__init__()
         self.model = model
-        self.criterion = criterion
+        self.loss_fn = loss_fn
+        self.metric = metrics
         self.optimizer = optimizer
 
     def forward(self, x):
         return self.model(x)
 
-    def shared_step(self, batch, stage):
-        image, mask = batch
-        out = self.forward(image)
-        loss = self.criterion(out, mask.long())
-        tp, fp, fn, tn = smp.metrics.get_stats((out.sigmoid() > 0.5).long(), mask.long(), mode='binary')
-        iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        self.log(f"{stage}_IoU", iou, prog_bar=True, on_epoch=True)
-        self.log(f"{stage}_loss", loss)
-        return {"loss": loss, "iou": iou}
+    def _common_step(self, batch, batch_idx, stage: str):
+        images, masks = batch
+        masks = torch.clamp(masks, 0, 1)
+        output = self.model(images)
+        print(f"stage: {stage}")
+        print(f"batch_idx: {batch_idx}")
+
+        output = torch.sigmoid(output)
+        print("output type: ", output.dtype)
+        print("masks type: ", masks.dtype)
+        loss = self.loss_fn(output, masks)
+        # print("loss: ", loss.item())
+        # output[output > 0.5] = 1
+        # output[output <= 0.5] = 0
+        # masks[masks > 0.5] = 1
+        # masks[masks <= 0.5] = 0
+        print("output shape: ", output.shape)
+        print("masks shape: ", masks.shape)
+        dice_score = self.metric(preds=output, target=masks)    #Error
+        self.log(f"{stage}/dice_score", dice_score)
+        self.log(f"{stage}/loss", loss.item())
+        mask_img = wandb.Image(masks, "ground truth masks")
+        output_img = wandb.Image(output, "output masks")
+        # self.log({f"{stage} ground truth masks": mask_img, f"{stage} output masks": output_img})
+
 
     def training_step(self, batch, batch_idx):
-        stage = 'train'
-        image, mask = batch
-        out = self.forward(image.float())
-        loss = self.criterion(out, mask.long())
-        tp, fp, fn, tn = smp.metrics.get_stats((out.sigmoid() > 0.5).long(), mask.long(), mode='binary')
-        iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        self.log(f"{stage}_IoU", iou)
-        self.log(f"{stage}_loss", loss)
-        # return self.shared_step(batch, "train")
+        print("stage training")
+        self._common_step(batch, batch_idx, stage='training')
 
     def validation_step(self, batch, batch_idx):
-        stage = 'valid'
-        image, mask = batch
-        out = self.forward(image.float())
-        loss = self.criterion(out, mask.long())
-        tp, fp, fn, tn = smp.metrics.get_stats((out.sigmoid() > 0.5).long(), mask.long(), mode='binary')
-        iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        self.log(f"{stage}_IoU", iou)
-        self.log(f"{stage}_loss", loss)
-        # return self.shared_step(batch, "test")
+        print("stage validation")
+        self._common_step(batch, batch_idx, stage='validation')
 
     def configure_optimizers(self):
         return self.optimizer
