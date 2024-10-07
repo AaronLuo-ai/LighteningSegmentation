@@ -1,3 +1,4 @@
+import wandb
 from Lightening_module import Segmentation
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader
@@ -20,8 +21,8 @@ def main():
     print(torch.cuda.is_available())
     print(torch.version.cuda)
     # root_dir = Path("C:\\Users\\aaron.l\\Documents\\LighteningSegmentation\\TestData")
-    root_dir = Path("C:\\Users\\aaron.l\\Documents\\data")
-    batch_path = Path("C:\\Users\\aaron.l\\Documents\\data\\batch.csv")
+    root_dir = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData")
+    batch_path = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData/batch.csv")
     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     print("CUDA_LAUNCH_BLOCKING =", os.environ.get('CUDA_LAUNCH_BLOCKING'))
 
@@ -69,10 +70,10 @@ def main():
     loss_fn = nn.BCELoss()
     wandb_logger = WandbLogger(log_model=False, project="Tumor Segmentation")
     pl_model = Segmentation(model=model, optimizer=optimizer, loss_fn=loss_fn, metrics = metrics)
-    trainer = pl.Trainer(logger=wandb_logger, accelerator='gpu', max_epochs=10, log_every_n_steps=10)
+    trainer = pl.Trainer(logger=wandb_logger, max_epochs=3, log_every_n_steps=10)
 
     trainer.fit(pl_model, train_dl, test_dl)
-
+    wandb.finish()
 
 if __name__ == '__main__':
     main()
