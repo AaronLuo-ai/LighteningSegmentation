@@ -17,27 +17,46 @@ class Segmentation(pl.LightningModule):
     def _common_step(self, batch, batch_idx, stage: str):
         images, masks = batch
         masks = torch.clamp(masks, 0, 1)
-        output = self.model(images)
-        output = torch.sigmoid(output)
-        loss = self.loss_fn(output, masks)
-        output[output > 0.5] = 1
-        output[output <= 0.5] = 0
-        output.clamp(0, 1)
+        outputs = self.model(images)
+        outputs = torch.sigmoid(outputs)
+        loss = self.loss_fn(outputs, masks)
+        outputs[outputs > 0.5] = 1
+        outputs[outputs <= 0.5] = 0
+        outputs = outputs.clamp(0, 1)
         masks.clamp(0, 1)
-        dice_score = self.metric(preds=output.long(), target=masks.long())    # Error
+        dice_score = self.metric(preds=outputs.long(), target=masks.long())    # Error
         # print(f"stage: {stage}, dice_score: {dice_score}")
         # print(f"stage {stage} loss: {loss.item()}")
 
         self.log(f"{stage}/dice_score", dice_score)
         self.log(f"{stage}/loss", loss.item())
+        table = wandb.Table(columns=["Image ID", "Overlay Image", "Mask", "Predicted"])
 
-        mask_img = wandb.Image(masks[0], caption="Ground Truth Mask")  # Log only the first mask for simplicity
-        output_img = wandb.Image(output[0], caption="Predicted Mask")  # Log only the first predicted mask
-        input_img = wandb.Image(images[0], caption="Input Image")  # Log the first input image
-        table = wandb.Table(columns=["ID", "Input Image", "Ground Truth", "Prediction"])
-        image_id = f"{stage}_batch{batch_idx}"
-        table.add_data(image_id, input_img, mask_img, output_img)
-        wandb.log({f"{stage}_predictions": table})
+        # print("images shape", images.shape)
+        # print("images.shape[0]: ", images.shape[0])
+        # print("masks shape", masks.shape)
+        # print("output shape", outputs.shape)
+        images_np = images.cpu().detach().numpy()
+        outputs_np = outputs.cpu().detach().numpy()
+        masks_np = masks.cpu().detach().numpy()
+        class_labels = {
+            0: "background",
+            1: "tumor"
+        }
+        for index in range(images_np.shape[0]):
+        # for img, mask, pred in zip(images_np, masks_np, outputs_np):
+            overlay_img = wandb.Image(images_np[index].squeeze(), masks={
+                "ground_truth": {
+                    "mask_data": masks_np[index].squeeze(),
+                    "class_labels": class_labels
+                },
+                "predictions": {
+                    "mask_data": outputs_np[index].squeeze(),
+                    "class_labels": class_labels
+                }
+            })
+            table.add_data(index, overlay_img, wandb.Image(masks_np[index].squeeze()), wandb.Image(outputs_np[index].squeeze()))
+        wandb.log({f"batch_idx {batch_idx} Table": table})
 
     def training_step(self, batch, batch_idx):
         print("stage training")

@@ -51,7 +51,7 @@ def main():
     train_dataset = dataset.MRIDataset(phase='train', root_dir=root_dir, batch_dir=batch_path, mask_transform=transform_train_mask, image_transform=transform_train_image)
     test_dataset = dataset.MRIDataset(phase='test', root_dir=root_dir, batch_dir=batch_path, mask_transform=transform_test_mask, image_transform=transform_test_image)
 
-    batch_size = 3
+    batch_size = 2
     train_dl = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1, persistent_workers=True)
     test_dl = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=1, persistent_workers=True)
 
@@ -70,7 +70,7 @@ def main():
     loss_fn = nn.BCELoss()
     wandb_logger = WandbLogger(log_model=False, project="Tumor Segmentation")
     pl_model = Segmentation(model=model, optimizer=optimizer, loss_fn=loss_fn, metrics = metrics)
-    trainer = pl.Trainer(logger=wandb_logger, max_epochs=3, log_every_n_steps=10)
+    trainer = pl.Trainer(logger=wandb_logger, max_epochs=2, log_every_n_steps=10)
 
     trainer.fit(pl_model, train_dl, test_dl)
     wandb.finish()
