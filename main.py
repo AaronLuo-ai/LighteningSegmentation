@@ -21,8 +21,12 @@ def main():
     print(torch.cuda.is_available())
     print(torch.version.cuda)
     # root_dir = Path("C:\\Users\\aaron.l\\Documents\\LighteningSegmentation\\TestData")
-    root_dir = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData")
-    batch_path = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData/batch.csv")
+    # Local Computer Path
+    # root_dir = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData")
+    # batch_path = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData/batch.csv")
+    # Lab Computer Path
+    root_dir = Path("C:\\Users\\aaron.l\\Documents\\data")
+    batch_path = Path("C:\\Users\\aaron.l\\Documents\\data\\batch.csv")
     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     print("CUDA_LAUNCH_BLOCKING =", os.environ.get('CUDA_LAUNCH_BLOCKING'))
 
@@ -64,12 +68,12 @@ def main():
         print("Current device:", device, "- Type:", torch.cuda.get_device_name(0))
 
     model = smp.Unet(encoder_name="resnet34", in_channels=1, classes=1)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-03)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-03, weight_decay=1e-04)
     metrics = GeneralizedDiceScore(num_classes=2)
     loss_fn = nn.BCELoss()
     wandb_logger = WandbLogger(log_model=False, project="Tumor Segmentation")
     pl_model = Segmentation(model=model, optimizer=optimizer, loss_fn=loss_fn, metrics = metrics)
-    trainer = pl.Trainer(logger=wandb_logger, max_epochs=5, log_every_n_steps=10)
+    trainer = pl.Trainer(logger=wandb_logger, max_epochs=100, log_every_n_steps=100)
 
     trainer.fit(pl_model, train_dl, test_dl)
     wandb.finish()

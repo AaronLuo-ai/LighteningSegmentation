@@ -23,7 +23,6 @@ class Segmentation(pl.LightningModule):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        # print("one train step")
         images, masks = batch
         masks = torch.clamp(masks, 0, 1)
         predictions = torch.sigmoid(self.model(images))
@@ -37,13 +36,12 @@ class Segmentation(pl.LightningModule):
         self.training_step_outputs.extend(predicted_masks)
         self.training_step_targets.extend(masks)
         self.training_step_inputs.extend(images)
-        # print("one train step done")
         return loss
 
     def on_train_epoch_end(self, *arg, **kwargs):
-        predicted_masks = torch.stack(self.training_step_outputs)
-        masks = torch.stack(self.training_step_targets)
-        images = torch.stack(self.training_step_inputs)
+        predicted_masks = torch.stack(self.training_step_outputs[-5:])
+        masks = torch.stack(self.training_step_targets[-5:])
+        images = torch.stack(self.training_step_inputs[-5:])
         dice_score = self.metric(preds=predicted_masks.long(), target=masks.long())
         self.log("training dice_score", dice_score, on_step=False, on_epoch=True, prog_bar=True)
         images_np = images.cpu().detach().numpy()
@@ -64,13 +62,12 @@ class Segmentation(pl.LightningModule):
             })
             table.add_data(index, overlay_img, wandb.Image(masks_np[index].squeeze()),
                            wandb.Image(predicted_masks_np[index].squeeze()))
-        wandb.log({f"training ": table})
+        wandb.log({f"training_epoch_{self.current_epoch}": table})
         self.training_step_outputs.clear()
         self.training_step_targets.clear()
         self.training_step_inputs.clear()
 
     def validation_step(self, batch, batch_idx):
-        # print("one validation step")
         images, masks = batch
         masks = torch.clamp(masks, 0, 1)
         predictions = torch.sigmoid(self.model(images))
@@ -84,14 +81,12 @@ class Segmentation(pl.LightningModule):
         self.val_step_outputs.extend(predicted_masks)
         self.val_step_targets.extend(masks)
         self.val_step_inputs.extend(images)
-        # print("one validation step done")
         return loss
 
     def on_validation_epoch_end(self) -> None:
-        # print("one end of validation epoch")
-        predicted_masks = torch.stack(self.val_step_outputs)
-        masks = torch.stack(self.val_step_targets)
-        images = torch.stack(self.val_step_inputs)
+        predicted_masks = torch.stack(self.val_step_outputs[-5:])
+        masks = torch.stack(self.val_step_targets[-5:])
+        images = torch.stack(self.val_step_inputs[-5:])
         dice_score = self.metric(preds=predicted_masks.long(), target=masks.long())  # Error
         self.log("validation dice_score", dice_score, on_step=False, on_epoch=True, prog_bar=True)
         images_np = images.cpu().detach().numpy()
@@ -103,7 +98,6 @@ class Segmentation(pl.LightningModule):
             1: "tumor"
         }
         for index in range(images_np.shape[0]):
-            # for img, mask, pred in zip(images_np, masks_np, outputs_np):
             overlay_img = wandb.Image(images_np[index].squeeze(), masks={
                 "ground_truth": {
                     "mask_data": masks_np[index].squeeze(),
@@ -116,8 +110,7 @@ class Segmentation(pl.LightningModule):
             })
             table.add_data(index, overlay_img, wandb.Image(masks_np[index].squeeze()),
                            wandb.Image(predicted_masks_np[index].squeeze()))
-        wandb.log({f"validation ": table})
-        # print("one end of validation epoch done")
+        wandb.log({f"validation_epoch_{self.current_epoch}": table})
         self.val_step_outputs.clear()
         self.val_step_targets.clear()
         self.val_step_inputs.clear()

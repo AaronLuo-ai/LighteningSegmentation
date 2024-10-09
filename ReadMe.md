@@ -8,7 +8,9 @@ tnie prescribed these on 2024/09/19 :)
 - [ ] Notice in `TrainDataset`'s `__init__` method, you are manually padding/resizing the images and min-max normalizing them. Prefer to use a transformation pipeline, like the one provided in PyTorch.
   - Refer to [this tutorial](https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html) to learn how to use `torchvision.transforms` to build a pipeline, and rewrite your resize and min-max normalization code into this pipeline (super easy).
   - One major advantage of using this transformation is that it's much easier to read and easier to reverse. For example, you might want to predict the segmentation mask of a new image with your trained model, and want to reverse transform the predicted mask into the orignal size (and not 128x128).
-
+- [ ] Instead of logging all the validation and training images to wandb on the last epoch, log 5-10 images to wandb throughout each epoch to see whether the performance is improving
+- [ ] Data Augmentation Techniques
+- [ ] Now that the model is overfitting, try to avoid overfitting using different strategies, including data augmentation, adding regularization...
 # Predicting masks using UNet
 
 1. Data Preparation
