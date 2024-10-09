@@ -62,7 +62,6 @@ def main():
     else:
         device = torch.device("cuda")
         print("Current device:", device, "- Type:", torch.cuda.get_device_name(0))
-    # breakpoint()
 
     model = smp.Unet(encoder_name="resnet34", in_channels=1, classes=1)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-03)
@@ -70,7 +69,7 @@ def main():
     loss_fn = nn.BCELoss()
     wandb_logger = WandbLogger(log_model=False, project="Tumor Segmentation")
     pl_model = Segmentation(model=model, optimizer=optimizer, loss_fn=loss_fn, metrics = metrics)
-    trainer = pl.Trainer(logger=wandb_logger, max_epochs=2, log_every_n_steps=10)
+    trainer = pl.Trainer(logger=wandb_logger, max_epochs=5, log_every_n_steps=10)
 
     trainer.fit(pl_model, train_dl, test_dl)
     wandb.finish()

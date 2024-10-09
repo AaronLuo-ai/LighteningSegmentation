@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytorch_lightning as pl
 import torch
 import wandb
@@ -10,61 +12,115 @@ class Segmentation(pl.LightningModule):
         self.loss_fn = loss_fn
         self.metric = metrics
         self.optimizer = optimizer
+        self.training_step_inputs = []
+        self.training_step_outputs = []  # save outputs in each batch to compute metric overall epoch
+        self.training_step_targets = []  # save targets in each batch to compute metric overall epoch
+        self.val_step_inputs = []
+        self.val_step_outputs = []  # save outputs in each batch to compute metric overall epoch
+        self.val_step_targets = []  # save targets in each batch to compute metric overall epoch
 
     def forward(self, x):
         return self.model(x)
 
-    def _common_step(self, batch, batch_idx, stage: str):
+    def training_step(self, batch, batch_idx):
+        # print("one train step")
         images, masks = batch
         masks = torch.clamp(masks, 0, 1)
-        outputs = self.model(images)
-        outputs = torch.sigmoid(outputs)
-        loss = self.loss_fn(outputs, masks)
-        outputs[outputs > 0.5] = 1
-        outputs[outputs <= 0.5] = 0
-        outputs = outputs.clamp(0, 1)
+        predictions = torch.sigmoid(self.model(images))
+        loss = self.loss_fn(predictions, masks)
+        self.log('train_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+        predicted_masks = predictions.clone()
+        predicted_masks[predicted_masks > 0.5] = 1
+        predicted_masks[predicted_masks <= 0.5] = 0
+        predicted_masks = predicted_masks.clamp(0, 1)
         masks.clamp(0, 1)
-        dice_score = self.metric(preds=outputs.long(), target=masks.long())    # Error
-        # print(f"stage: {stage}, dice_score: {dice_score}")
-        # print(f"stage {stage} loss: {loss.item()}")
+        self.training_step_outputs.extend(predicted_masks)
+        self.training_step_targets.extend(masks)
+        self.training_step_inputs.extend(images)
+        # print("one train step done")
+        return loss
 
-        self.log(f"{stage}/dice_score", dice_score)
-        self.log(f"{stage}/loss", loss.item())
-        table = wandb.Table(columns=["Image ID", "Overlay Image", "Mask", "Predicted"])
-
-        # print("images shape", images.shape)
-        # print("images.shape[0]: ", images.shape[0])
-        # print("masks shape", masks.shape)
-        # print("output shape", outputs.shape)
+    def on_train_epoch_end(self, *arg, **kwargs):
+        predicted_masks = torch.stack(self.training_step_outputs)
+        masks = torch.stack(self.training_step_targets)
+        images = torch.stack(self.training_step_inputs)
+        dice_score = self.metric(preds=predicted_masks.long(), target=masks.long())
+        self.log("training dice_score", dice_score, on_step=False, on_epoch=True, prog_bar=True)
         images_np = images.cpu().detach().numpy()
-        outputs_np = outputs.cpu().detach().numpy()
+        predicted_masks_np = predicted_masks.cpu().detach().numpy()
         masks_np = masks.cpu().detach().numpy()
-        class_labels = {
-            0: "background",
-            1: "tumor"
-        }
+        table = wandb.Table(columns=["Image ID", "Training Overlay Image", "Training Mask", "Predicted"])
+        class_labels = {0: "background", 1: "tumor"}
         for index in range(images_np.shape[0]):
-        # for img, mask, pred in zip(images_np, masks_np, outputs_np):
             overlay_img = wandb.Image(images_np[index].squeeze(), masks={
                 "ground_truth": {
                     "mask_data": masks_np[index].squeeze(),
                     "class_labels": class_labels
                 },
                 "predictions": {
-                    "mask_data": outputs_np[index].squeeze(),
+                    "mask_data": predicted_masks_np[index].squeeze(),
                     "class_labels": class_labels
                 }
             })
-            table.add_data(index, overlay_img, wandb.Image(masks_np[index].squeeze()), wandb.Image(outputs_np[index].squeeze()))
-        wandb.log({f"batch_idx {batch_idx} Table": table})
-
-    def training_step(self, batch, batch_idx):
-        print("stage training")
-        self._common_step(batch, batch_idx, stage='training')
+            table.add_data(index, overlay_img, wandb.Image(masks_np[index].squeeze()),
+                           wandb.Image(predicted_masks_np[index].squeeze()))
+        wandb.log({f"training ": table})
+        self.training_step_outputs.clear()
+        self.training_step_targets.clear()
+        self.training_step_inputs.clear()
 
     def validation_step(self, batch, batch_idx):
-        print("stage validation")
-        self._common_step(batch, batch_idx, stage='validation')
+        # print("one validation step")
+        images, masks = batch
+        masks = torch.clamp(masks, 0, 1)
+        predictions = torch.sigmoid(self.model(images))
+        loss = self.loss_fn(predictions, masks)
+        self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+        predicted_masks = predictions.clone()
+        predicted_masks[predicted_masks > 0.5] = 1
+        predicted_masks[predicted_masks <= 0.5] = 0
+        predicted_masks = predicted_masks.clamp(0, 1)
+        masks.clamp(0, 1)
+        self.val_step_outputs.extend(predicted_masks)
+        self.val_step_targets.extend(masks)
+        self.val_step_inputs.extend(images)
+        # print("one validation step done")
+        return loss
+
+    def on_validation_epoch_end(self) -> None:
+        # print("one end of validation epoch")
+        predicted_masks = torch.stack(self.val_step_outputs)
+        masks = torch.stack(self.val_step_targets)
+        images = torch.stack(self.val_step_inputs)
+        dice_score = self.metric(preds=predicted_masks.long(), target=masks.long())  # Error
+        self.log("validation dice_score", dice_score, on_step=False, on_epoch=True, prog_bar=True)
+        images_np = images.cpu().detach().numpy()
+        predicted_masks_np = predicted_masks.cpu().detach().numpy()
+        masks_np = masks.cpu().detach().numpy()
+        table = wandb.Table(columns=["Image ID", "Validation Overlay Image", "Validation Mask", "Predicted"])
+        class_labels = {
+            0: "background",
+            1: "tumor"
+        }
+        for index in range(images_np.shape[0]):
+            # for img, mask, pred in zip(images_np, masks_np, outputs_np):
+            overlay_img = wandb.Image(images_np[index].squeeze(), masks={
+                "ground_truth": {
+                    "mask_data": masks_np[index].squeeze(),
+                    "class_labels": class_labels
+                },
+                "predictions": {
+                    "mask_data": predicted_masks_np[index].squeeze(),
+                    "class_labels": class_labels
+                }
+            })
+            table.add_data(index, overlay_img, wandb.Image(masks_np[index].squeeze()),
+                           wandb.Image(predicted_masks_np[index].squeeze()))
+        wandb.log({f"validation ": table})
+        # print("one end of validation epoch done")
+        self.val_step_outputs.clear()
+        self.val_step_targets.clear()
+        self.val_step_inputs.clear()
 
     def configure_optimizers(self):
         return self.optimizer
