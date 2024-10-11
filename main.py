@@ -15,6 +15,7 @@ from utils import *
 # from utils.helper import normalize
 # from utils.AugmentationClass import JointTransformTrain, JointTransformTest
 from torchvision.transforms import Compose, RandomRotation
+from pytorch_lightning.callbacks import EarlyStopping
 
 
 # import pdb
@@ -25,11 +26,11 @@ def main():
     print(torch.cuda.is_available())
     print(torch.version.cuda)
     # Local Computer Path
-    root_dir = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData")
-    batch_path = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData/batch.csv")
+    # root_dir = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData")
+    # batch_path = Path("/Users/luozisheng/Documents/Zhu_lab/MRIData/batch.csv")
     # Lab Computer Path
-    # root_dir = Path("C:\\Users\\aaron.l\\Documents\\data")
-    # batch_path = Path("C:\\Users\\aaron.l\\Documents\\data\\batch.csv")
+    root_dir = Path("C:\\Users\\aaron.l\\Documents\\data")
+    batch_path = Path("C:\\Users\\aaron.l\\Documents\\data\\batch.csv")
     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     print("CUDA_LAUNCH_BLOCKING =", os.environ.get('CUDA_LAUNCH_BLOCKING'))
 
@@ -60,13 +61,13 @@ def main():
 
     train_dataset = dataset.MRIDataset(phase='train', root_dir=root_dir, batch_dir=batch_path,
                                        transform=transform_train)
-    test_dataset = dataset.MRIDataset(phase='test', root_dir=root_dir, batch_dir=batch_path, tranform=transform_test)
+    test_dataset = dataset.MRIDataset(phase='test', root_dir=root_dir, batch_dir=batch_path, transform=transform_test)
 
     batch_size = 2
     train_dl = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1, persistent_workers=True)
     test_dl = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=1, persistent_workers=True)
-
-    # Select GPU device for the training if available
+    length = len(test_dataset)
+    selected_indices = random.sample(range(length), 5)
     if not torch.cuda.is_available():
         device = torch.device("cpu")
         print("Current device:", device)
@@ -75,12 +76,18 @@ def main():
         print("Current device:", device, "- Type:", torch.cuda.get_device_name(0))
 
     model = smp.Unet(encoder_name="resnet34", in_channels=1, classes=1)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-03, weight_decay=1e-04)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     metrics = GeneralizedDiceScore(num_classes=2)
-    loss_fn = nn.BCELoss()
+    early_stopping = EarlyStopping(
+        monitor='validation_dice_score',
+        patience=40,
+        mode='max'
+    )
+    loss_fn = smp.losses.DiceLoss(mode='binary')
+    # loss_fn = nn.BCEWithLogitsLoss(reduction='mean')
     wandb_logger = WandbLogger(log_model=False, project="Tumor Segmentation")
-    pl_model = Segmentation(model=model, optimizer=optimizer, loss_fn=loss_fn, metrics=metrics)
-    trainer = pl.Trainer(logger=wandb_logger, max_epochs=100, log_every_n_steps=100)
+    pl_model = Segmentation(model=model, optimizer=optimizer, loss_fn=loss_fn, metrics=metrics, selected_indices=selected_indices)
+    trainer = pl.Trainer(logger=wandb_logger, max_epochs=100, log_every_n_steps=100, callbacks=[early_stopping], num_sanity_val_steps=0)
 
     trainer.fit(pl_model, train_dl, test_dl)
     wandb.finish()

@@ -5,12 +5,13 @@ import wandb
 
 
 class Segmentation(pl.LightningModule):
-    def __init__(self, model, optimizer, loss_fn, metrics):
+    def __init__(self, model, optimizer, loss_fn, metrics, selected_indices):
         super().__init__()
         self.model = model
         self.loss_fn = loss_fn
         self.metric = metrics
         self.optimizer = optimizer
+        self.selected_indices = selected_indices
         self.training_step_inputs = []
         self.training_step_outputs = []  # save outputs in each batch to compute metric overall epoch
         self.training_step_targets = []  # save targets in each batch to compute metric overall epoch
@@ -24,7 +25,7 @@ class Segmentation(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         images, masks = batch
         masks = torch.clamp(masks, 0, 1)
-        predictions = torch.sigmoid(self.model(images))
+        predictions = self.model(images)
         loss = self.loss_fn(predictions, masks)
         self.log('train_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
         predicted_masks = predictions.clone()
@@ -38,11 +39,11 @@ class Segmentation(pl.LightningModule):
         return loss
 
     def on_train_epoch_end(self, *arg, **kwargs):
-        predicted_masks = torch.stack(self.training_step_outputs[-5:])
-        masks = torch.stack(self.training_step_targets[-5:])
-        images = torch.stack(self.training_step_inputs[-5:])
+        predicted_masks = torch.stack([self.training_step_outputs[i] for i in self.selected_indices])
+        masks = torch.stack([self.training_step_targets[i] for i in self.selected_indices])
+        images = torch.stack([self.training_step_inputs[i] for i in self.selected_indices])
         dice_score = self.metric(preds=predicted_masks.long(), target=masks.long())
-        self.log("training dice_score", dice_score, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("training_dice_score", dice_score, on_step=False, on_epoch=True, prog_bar=True)
         images_np = images.cpu().detach().numpy()
         predicted_masks_np = predicted_masks.cpu().detach().numpy()
         masks_np = masks.cpu().detach().numpy()
@@ -69,7 +70,7 @@ class Segmentation(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         images, masks = batch
         masks = torch.clamp(masks, 0, 1)
-        predictions = torch.sigmoid(self.model(images))
+        predictions = self.model(images)
         loss = self.loss_fn(predictions, masks)
         self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
         predicted_masks = predictions.clone()
@@ -83,11 +84,11 @@ class Segmentation(pl.LightningModule):
         return loss
 
     def on_validation_epoch_end(self) -> None:
-        predicted_masks = torch.stack(self.val_step_outputs[-5:])
-        masks = torch.stack(self.val_step_targets[-5:])
-        images = torch.stack(self.val_step_inputs[-5:])
+        predicted_masks = torch.stack([self.val_step_outputs[i] for i in self.selected_indices])
+        masks = torch.stack([self.val_step_targets[i] for i in self.selected_indices])
+        images = torch.stack([self.val_step_inputs[i] for i in self.selected_indices])
         dice_score = self.metric(preds=predicted_masks.long(), target=masks.long())  # Error
-        self.log("validation dice_score", dice_score, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("validation_dice_score", dice_score, on_step=False, on_epoch=True, prog_bar=True)
         images_np = images.cpu().detach().numpy()
         predicted_masks_np = predicted_masks.cpu().detach().numpy()
         masks_np = masks.cpu().detach().numpy()

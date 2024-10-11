@@ -2,6 +2,7 @@ import random
 import torchvision.transforms.functional as F
 from torchvision.transforms import InterpolationMode
 from torchvision import transforms
+from torchvision.transforms.functional import InterpolationMode, adjust_brightness
 
 class JointTransformTrain:
     def __init__(self, degrees, transform_image, transform_mask, interpolation=InterpolationMode.NEAREST):
@@ -11,6 +12,7 @@ class JointTransformTrain:
         self.resize = transforms.Resize((128, 128))
         self.transform_image = transform_image
         self.transform_mask = transform_mask
+        self.flip_prob = 0.5
 
     def __call__(self, image, mask):
         # Generate a single random rotation angle for both image and mask
@@ -20,7 +22,15 @@ class JointTransformTrain:
         rotated_image = F.rotate(transformed_image, angle, interpolation=self.interpolation)
         rotated_mask = F.rotate(transformed_mask, angle, interpolation=self.interpolation)
 
-        return rotated_image, rotated_mask
+        if random.random() < self.flip_prob:
+            rotated_image = F.hflip(rotated_image)
+            rotated_mask = F.hflip(rotated_mask)
+
+        brightness_factor = random.randint(1, 10)
+        brightened_image = adjust_brightness(rotated_image, brightness_factor=brightness_factor)
+        brightened_mask = adjust_brightness(rotated_mask, brightness_factor=brightness_factor)
+
+        return brightened_image, brightened_mask
 
 
 class JointTransformTest:
