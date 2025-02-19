@@ -12,11 +12,25 @@ from torchvision.transforms import Compose, Lambda
 #     def forward(self, input, target):
 #         return torch.mean(-torch.sum(target * torch.log(input), 1))
 
+
+def clamp_values(image):
+    return torch.clamp(image, 0, 1)
+
+
 def normalize(x):
     return (x - x.min()) / (x.max() - x.min())
 
+
 def resize_np_array(img, size=(224, 224)):
     return cv2.resize(img, size)
+
+
+def grayscale_to_rgb(
+    grayscale_tensor,
+):  # called every time when the dataloader is called
+    rgb_tensor = grayscale_tensor.repeat(3, 1, 1)
+    return rgb_tensor
+
 
 def change_dimension(nrrd_array):
     resized_array = []
